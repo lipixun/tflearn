@@ -73,3 +73,64 @@ def embedding(incoming, input_dim, output_dim, validate_indices=False,
     tf.add_to_collection(tf.GraphKeys.LAYER_TENSOR + '/' + name, inference)
 
     return inference
+
+def embedding_sparse(incoming, input_dim, output_dim, incoming_weights=None,
+    partition_strategy="mod", combiner="mean", weights_init="truncated_normal",
+    trainable=True, restore=True, reuse=False, scope=None, name="EmbeddingSparse"):
+    """ Embedding for sparse tensor
+
+    Embedding layer for a sparse input.
+
+    Input:
+        N-D SparseTensor of int64 ids which N > 1 [ batch_size, indices... ].
+
+    Output:
+        N-D Tensor. Shape = output_dim + shape(incoming)[1: ]
+
+    Arguments:
+        incoming: Incoming N-D SparseTensor of int64 ids which N > 1.
+        input_dim: list of `int`. Vocabulary size (number of ids).
+        output_dim: list of `int`. Embedding size.
+        incoming_weights: A SparseTensor of float / double weights,
+            or None to indicate all weights should be taken to be 1.
+        partition_strategy:
+        combiner: A string specifying the reduction op.
+            Currently "mean", "sqrtn" and "sum" are supported.
+            Default: 'mean'
+        max_norm:
+        weights_init: `str` (name) or `Tensor`. Weights initialization.
+            (see tflearn.initializations) Default: 'truncated_normal'.
+        trainable: `bool`. If True, weights will be trainable.
+        restore: `bool`. If True, this layer weights will be restored when
+            loading a model
+        reuse: `bool`. If True and 'scope' is provided, this layer variables
+            will be reused (shared).
+        scope: `str`. Define this layer scope (optional). A scope can be
+            used to share variables between layers. Note that scope will
+            override name.
+        name: A name for this layer (optional). Default: 'EmbeddingSparse'.
+
+    """
+    W_init = weights_init
+    if isinstance(weights_init, str):
+        W_init = initializations.get(weights_init)()
+
+    varis = [ incoming ]
+    if incoming_weights is not None:
+        varis.append(incoming_weights)
+
+    with tf.variable_scope(scope, default_name=name, values=varis, reuse=reuse) as scope:
+        name = scope.name
+        with tf.device('/cpu:0'):
+            W = vs.variable("W", shape=[input_dim, output_dim], initializer=W_init,
+                            trainable=trainable, restore=restore)
+            tf.add_to_collection(tf.GraphKeys.LAYER_VARIABLES + '/' + name, W)
+        inference = tf.cast(incoming, tf.int64)
+        inference = tf.nn.embedding_lookup_sparse(W, incoming, incoming_weights,
+                                                  partition_strategy=partition_strategy,
+                                                  combiner=combiner)
+    inference.W = W
+    inference.scope = scope
+    tf.add_to_collection(tf.GraphKeys.LAYER_TENSOR + '/' + name, inference)
+    return inference
+

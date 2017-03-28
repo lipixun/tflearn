@@ -9,5 +9,5 @@ from .normalization import batch_normalization, local_response_normalization
 from .estimator import regression
 from .recurrent import lstm, gru, simple_rnn, bidirectional_rnn, \
     BasicRNNCell, BasicLSTMCell, GRUCell
-from .embedding_ops import embedding
+from .embedding_ops import embedding, embedding_sparse
 from .merge_ops import merge, merge_outputs
