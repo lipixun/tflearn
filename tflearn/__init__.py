@@ -25,7 +25,6 @@ from . import losses
 from . import initializations
 from . import optimizers
 from . import summaries
-from . import optimizers
 from . import variables
 from . import collections # Add TFLearn collections to Tensorflow GraphKeys
 
@@ -37,7 +36,7 @@ from .variables import variable, get_all_trainable_variable, \
     get_all_variables, get_layer_variables_by_name
 from .objectives import categorical_crossentropy, binary_crossentropy, \
     softmax_categorical_crossentropy, hinge_loss, mean_square
-from .metrics import Top_k, Accuracy, R2, top_k_op, accuracy_op, r2_op, Prediction_Counts
+from .metrics import Top_k, Accuracy, R2, top_k_op, accuracy_op, r2_op, Prediction_Counts, f1score
 
 # Direct layers inclusion
 from . import layers

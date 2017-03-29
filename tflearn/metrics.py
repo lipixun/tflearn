@@ -65,12 +65,12 @@ class Accuracy(Metric):
     """ Accuracy.
 
     Computes the model accuracy.  The target predictions are assumed
-    to be logits.  
+    to be logits.
 
-    If the predictions tensor is 1D (ie shape [?], or [?, 1]), then the 
+    If the predictions tensor is 1D (ie shape [?], or [?, 1]), then the
     labels are assumed to be binary (cast as float32), and accuracy is
     computed based on the average number of equal binary outcomes,
-    thresholding predictions on logits > 0.  
+    thresholding predictions on logits > 0.
 
     Otherwise, accuracy is computed based on categorical outcomes,
     and assumes the inputs (both the model predictions and the labels)
@@ -228,6 +228,34 @@ class Prediction_Counts(Metric):
 
 prediction_counts = Prediction_Counts
 
+class F1Score(Metric):
+    """ Compute the F1 Score
+
+    The F1 score can be used as a balanced of precision and recall.
+
+    F1 = 2 * (precision * recall) / (precision + recall)
+    """
+    def __init__(self, name=None, mode="mean_after_score"):
+        """Create a new F1Score
+        """
+        super(F1Score, self).__init__(name or "f1")
+        self.mode = mode
+
+    def build(self, predictions, targets, inputs=None):
+        """Build the f1 score tensor
+        """
+        if self.mode == "mean_after_score":
+            self.built = True
+            self.tensor = f1score_op_mean_after_score(predictions, targets)
+        elif self.mode == "global":
+            self.built = True
+            self.tensor = f1score_op_global(predictions, targets)
+        else:
+            raise ValueError("unknown model in F1Score")
+
+        self.tensor.m_name = self.name
+
+f1score = F1Score
 
 # ----------
 # Metric ops
@@ -237,7 +265,7 @@ prediction_counts = Prediction_Counts
 def accuracy_op(predictions, targets):
     """ accuracy_op.
 
-    An op that calculates mean accuracy, assuming predictiosn are targets
+    An op that calculates mean accuracy, assuming predictions and targets
     are both one-hot encoded.
 
     Examples:
@@ -395,9 +423,53 @@ def weighted_r2_op(predictions, targets, inputs):
     with tf.name_scope('WeightedStandardError'):
         if hasattr(inputs, '__len__'):
             inputs = tf.add_n(inputs)
-        if inputs.get_shape().as_list() != targets.get_shape().as_list():
+        if inputs.get_shape().as_list() != targets.get_shape().as_list(): # pylint: disable=I0011,E1101
             raise Exception("Weighted R2 metric requires Inputs and Targets to "
                             "have same shape.")
         a = tf.reduce_sum(tf.square(predictions - inputs))
         b = tf.reduce_sum(tf.square(targets - inputs))
         return tf.divide(a, b)
+
+def f1score_op_mean_after_score(predictions, targets):
+    """ f1score_op_mean_after_score
+
+    An op that calculates the f1 score. Assuming predictions are logits, and
+    targets are binary encoded (and represented as int32).
+
+    This op will calculate f1 score for each sample and find their average.
+
+    Returns:
+        `Float`. The f1 score
+    """
+    with tf.name_scope('F1Score'):
+        targets = tf.cast(targets, tf.float32)
+        predictions = tf.greater(predictions, 0.0)
+        should_recall = tf.reduce_sum(targets, axis=1)
+        correct_recall = tf.reduce_sum(tf.cast(tf.logical_and(predictions, tf.equal(targets, 1.0)), tf.float32), axis=1)
+        total_recall = tf.reduce_sum(tf.cast(predictions, tf.float32), axis=1)
+        recall = correct_recall / tf.maximum(should_recall, 1e-10)
+        precision = correct_recall / tf.maximum(total_recall, 1e-10)
+        f1 = tf.reduce_mean(2 * recall * precision / tf.maximum(precision + recall, 1e-10))
+    return f1
+
+def f1score_op_global(predictions, targets):
+    """ f1score_op_global
+
+    An op that calculates the f1 score. Assuming predictions are logits, and
+    targets are binary encoded (and represented as int32).
+
+    This op will calculate f1 score globally (by counting the total true positives, false negatives)
+
+    Returns:
+        `Float`. The f1 score
+    """
+    with tf.name_scope('F1Score'):
+        targets = tf.cast(targets, tf.float32)
+        predictions = tf.greater(predictions, 0.0)
+        should_recall = tf.reduce_sum(targets)
+        correct_recall = tf.reduce_sum(tf.cast(tf.logical_and(predictions, tf.equal(targets, 1.0)), tf.float32))
+        total_recall = tf.reduce_sum(tf.cast(predictions, tf.float32))
+        recall = correct_recall / tf.maximum(should_recall, 1e-10)
+        precision = correct_recall / tf.maximum(total_recall, 1e-10)
+        f1 = 2 * recall * precision / tf.maximum(precision + recall, 1e-10)
+    return f1
