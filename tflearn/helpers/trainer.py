@@ -76,7 +76,7 @@ class Trainer(object):
                  tensorboard_verbose=0, checkpoint_path=None, best_checkpoint_path=None,
                  max_checkpoints=None,
                  keep_checkpoint_every_n_hours=10000.0, random_seed=None,
-                 session=None, best_val_accuracy=0.0):
+                 session=None, best_val_accuracy=0.0, global_step=None):
 
         self.graph = tf.get_default_graph()
         self.summ_writer = None
@@ -99,8 +99,12 @@ class Trainer(object):
             self.train_ops = to_list(train_ops)
             self.validate_trainop_names()
 
-            self.global_step = tf.Variable(0., name='Global_Step',
-                                           trainable=False)
+            if not global_step:
+                self.global_step = tf.Variable(0., name='Global_Step',
+                                               trainable=False)
+            else:
+                self.global_step = global_step
+
             self.incr_global_step = tf.assign(self.global_step,
                                               tf.add(self.global_step, 1))
             self.best_val_accuracy = best_val_accuracy
@@ -394,11 +398,11 @@ class Trainer(object):
                                  restored.
             scope_for_restore: string specifying the scope to limit to, when restoring variables.
                                Also removes the scope name prefix from the var name to use when restoring.
-            create_new_session: Set to False if the current session is to be kept.  
+            create_new_session: Set to False if the current session is to be kept.
                                 Set to True (the default) to create a new session, and re-init all variables.
             verbose           : Set to True to see a printout of what variables are being restored,
                                 when using scope_for_restore or variable_name_map
-        
+
         """
         # TF 0.12 Fix
         if not os.path.isabs(model_file):
@@ -514,11 +518,11 @@ class TrainOp(object):
         validation_monitors: `list` of `Tensor` objects.  List of variables
             to compute during validation, which are also used to produce
             summaries for output to TensorBoard.  For example, this can be
-            used to periodically record a confusion matrix or AUC metric, 
-            during training.  Each variable should have rank 1, i.e. 
+            used to periodically record a confusion matrix or AUC metric,
+            during training.  Each variable should have rank 1, i.e.
             shape [None].
         validation_batch_size: `int` or None. If `int`, specifies the batch
-            size to be used for the validation data feed; otherwise 
+            size to be used for the validation data feed; otherwise
             defaults to being th esame as `batch_size`.
         name: `str`. A name for this class (optional).
         graph: `tf.Graph`. Tensorflow Graph to use for training. Default:

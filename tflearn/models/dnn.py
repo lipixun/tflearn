@@ -49,7 +49,7 @@ class DNN(object):
 
     def __init__(self, network, clip_gradients=5.0, tensorboard_verbose=0,
                  tensorboard_dir="/tmp/tflearn_logs/", checkpoint_path=None, best_checkpoint_path=None,
-                 max_checkpoints=None, session=None, best_val_accuracy=0.0):
+                 max_checkpoints=None, session=None, best_val_accuracy=0.0, global_step=None):
         assert isinstance(network, tf.Tensor), "'network' arg is not a Tensor!"
         self.net = network
         self.train_ops = tf.get_collection(tf.GraphKeys.TRAIN_OPS)
@@ -61,7 +61,9 @@ class DNN(object):
                                best_checkpoint_path=best_checkpoint_path,
                                max_checkpoints=max_checkpoints,
                                session=session,
-                               best_val_accuracy=best_val_accuracy)
+                               best_val_accuracy=best_val_accuracy,
+                               global_step=global_step,
+                               )
         self.session = self.trainer.session
 
         self.inputs = tf.get_collection(tf.GraphKeys.INPUTS)
@@ -276,7 +278,7 @@ class DNN(object):
                 averages will not be restored as well.
             optargs: optional extra arguments for trainer.restore (see helpers/trainer.py)
                      These optional arguments may be used to limit the scope of
-                     variables restored, and to control whether a new session is 
+                     variables restored, and to control whether a new session is
                      created for the restored variables.
         """
         self.trainer.restore(model_file, weights_only, **optargs)
