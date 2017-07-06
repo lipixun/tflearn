@@ -582,8 +582,8 @@ class TrainOp(object):
         if not isinstance(self.loss, tf.Tensor):
             raise ValueError("Unknown Loss type")
 
-        if not isinstance(self.optimizer, tf_optimizer.Optimizer):
-            raise ValueError("Unknown Optimizer")
+        #if not isinstance(self.optimizer, tf_optimizer.Optimizer):
+        #    raise ValueError("Unknown Optimizer")
 
         if self.train_vars is None:
             self.train_vars = tf.trainable_variables()
@@ -646,8 +646,8 @@ class TrainOp(object):
         # loss of all regularizers. Then, we summarize those losses for
         # visualization in Tensorboard.
         with tf.name_scope(self.name):
-            lss = [self.loss] + tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
-            total_loss = tf.add_n(lss, name="Total_Loss")
+            #lss = [self.loss] + tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
+            total_loss = self.loss# tf.add_n(lss, name="Total_Loss")
             loss_avg_op = summaries.add_loss_summaries(
                 total_loss,
                 self.loss,
